@@ -6,3 +6,4 @@ Task
 - priority (int)
 - category (string)
 - completed (boolean)
+- dueDate (optional date)
