@@ -2,8 +2,8 @@
 
 Task
 - id (int, primary key)
-- name (string)
-- priority (int)
+- title (string)
+- priority (int, 1-5)
 - category (string)
 - completed (boolean)
 - dueDate (optional date)
