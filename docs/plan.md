@@ -4,7 +4,7 @@ Goal:
 Build a system that helps users decide what task to work on based on priority, category, and constraints.
 
 Core Features:
-- Store tasks (name, priority, category)
+- Store tasks (title, priority, category)
 - Select tasks based on filters or randomness
 - Basic API for task management
 
