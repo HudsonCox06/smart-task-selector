@@ -2,18 +2,30 @@
 
 ## Tasks
 
-POST /tasks
-- Create a new task
-- Fields: name, priority, category
+### POST /tasks
+Create a new task
 
-GET /tasks
-- Get all tasks
+Request body:
+- title (string)
+- priority (int)
+- category (string)
+- dueDate (optional date)
 
-POST /select-task
-- Returns a task based on filters
+---
 
-Optional filters:
-- category
-- priority
-- random selection
-- due date (related to priority possibly)
+### GET /tasks
+Return all tasks
+
+---
+
+### POST /select-task
+Return one task based on filters
+
+Request body (all optional):
+- category (string)
+- minPriority (int)
+- random (boolean)
+- includeCompleted (boolean, default false)
+
+Response:
+- single Task object
