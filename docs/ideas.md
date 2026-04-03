@@ -9,3 +9,15 @@ recurring tasks
 cleaner UI
 ADHD mode
 notifications
+
+Custom Scoring Rules
+
+Allow users to define rules that influence task priority.
+
+Examples:
+- Increase priority if due date is near
+- Increase priority for tasks that must be done on weekdays
+- Deprioritize tasks outside preferred time windows
+
+Goal:
+Move from static scoring → user-configurable scoring system

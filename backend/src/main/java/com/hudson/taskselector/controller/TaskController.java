@@ -36,4 +36,14 @@ public class TaskController {
             request.getIncludeCompleted()
         );
     }
+
+    @PutMapping("/{id}/complete")
+    public Task completeTask(@PathVariable Long id) {
+        return taskService.completeTaskById(id);
+    }
+
+    @PutMapping("/{id}")
+    public Task updateTask(@PathVariable Long id, @RequestBody Task updatedTask) {
+        return taskService.updateTaskById(id, updatedTask);
+    }
 }

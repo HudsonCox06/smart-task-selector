@@ -10,12 +10,14 @@ import java.util.List;
 public class TaskService {
 
     private final List<Task> tasks = new ArrayList<>();
+    private Long nextID = 1L;
 
     public List<Task> getAllTasks() {
         return tasks;
     }
 
     public Task addTask(Task task) {
+        task.setId(nextID++);
         tasks.add(task);
         return task;
     }
@@ -48,14 +50,49 @@ public class TaskService {
             return candidates.get(index);
         }
 
-        Task bestTask = candidates.get(0);
+        Task bestTask = null;
+        int bestScore = Integer.MIN_VALUE;
 
         for (Task task : candidates) {
-            if (task.getPriority() > bestTask.getPriority()) {
+            int score = 0;
+
+            // Base score: priority
+            score += task.getPriority() * 10;
+
+            // Slight bonus for incomplete tasks
+            if(!task.isCompleted()) {
+                score += 5;
+            }
+
+            if (bestTask == null || score > bestScore) {
                 bestTask = task;
+                bestScore = score;
             }
         }
 
         return bestTask;
+    }
+
+    public Task updateTaskById(Long id, Task updatedTask) {
+        for (Task task : tasks) {
+            if (task.getId().equals(id)) {
+                task.setTitle(updatedTask.getTitle());
+                task.setPriority(updatedTask.getPriority());
+                task.setCategory(updatedTask.getCategory());
+                task.setCompleted(updatedTask.isCompleted());
+                return task;
+            }
+        }
+        return null;
+    }
+
+    public Task completeTaskById(Long id) {
+        for (Task task : tasks) {
+            if (task.getId().equals(id)) {
+                task.setCompleted(true);
+                return task;
+            }
+        }
+        return null;
     }
 }
