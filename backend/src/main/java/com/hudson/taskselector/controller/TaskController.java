@@ -1,25 +1,39 @@
 package com.hudson.taskselector.controller;
 
 import com.hudson.taskselector.model.Task;
+import com.hudson.taskselector.service.TaskService;
 import org.springframework.web.bind.annotation.*;
+import com.hudson.taskselector.dto.SelectTaskRequest;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/tasks")
 public class TaskController {
 
-    private final List<Task> tasks = new ArrayList<>();
+    private final TaskService taskService;
+
+    public TaskController(TaskService taskService) {
+        this.taskService = taskService;
+    }
 
     @GetMapping
     public List<Task> getTasks() {
-        return tasks;
+        return taskService.getAllTasks();
     }
 
     @PostMapping
     public Task createTask(@RequestBody Task task) {
-        tasks.add(task);
-        return task;
+        return taskService.addTask(task);
+    }
+
+    @PostMapping("/select-task")
+    public Task selectTask(@RequestBody SelectTaskRequest request) {
+        return taskService.selectTask(
+            request.getCategory(),
+            request.getMinPriority(),
+            request.getRandom(),
+            request.getIncludeCompleted()
+        );
     }
 }
