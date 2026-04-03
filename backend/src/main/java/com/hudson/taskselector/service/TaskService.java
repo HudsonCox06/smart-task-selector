@@ -1,28 +1,33 @@
 package com.hudson.taskselector.service;
 
 import com.hudson.taskselector.model.Task;
+import com.hudson.taskselector.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TaskService {
 
-    private final List<Task> tasks = new ArrayList<>();
-    private Long nextID = 1L;
+    private final TaskRepository taskRepository;
+
+    public TaskService(TaskRepository taskRepository) {
+        this.taskRepository = taskRepository;
+    }
 
     public List<Task> getAllTasks() {
-        return tasks;
+        return taskRepository.findAll();
     }
 
     public Task addTask(Task task) {
-        task.setId(nextID++);
-        tasks.add(task);
-        return task;
+        return taskRepository.save(task);
     }
+    
 
     public Task selectTask(String category, Integer minPriority, Boolean random, Boolean includeCompleted) {
+        List<Task> tasks = taskRepository.findAll();
         List<Task> candidates = new ArrayList<>();
 
         for (Task task : tasks) {
@@ -74,25 +79,31 @@ public class TaskService {
     }
 
     public Task updateTaskById(Long id, Task updatedTask) {
-        for (Task task : tasks) {
-            if (task.getId().equals(id)) {
-                task.setTitle(updatedTask.getTitle());
-                task.setPriority(updatedTask.getPriority());
-                task.setCategory(updatedTask.getCategory());
-                task.setCompleted(updatedTask.isCompleted());
-                return task;
-            }
+        Optional<Task> optionalTask = taskRepository.findById(id);
+
+        if (optionalTask.isPresent()) {
+            Task task = optionalTask.get();
+            task.setTitle(updatedTask.getTitle());
+            task.setPriority(updatedTask.getPriority());
+            task.setCategory(updatedTask.getCategory());
+            task.setCompleted(updatedTask.isCompleted());
+            return taskRepository.save(task);
         }
+
+        return null;
+    }
+        
+
+    public Task completeTaskById(Long id) {
+        Optional<Task> optionalTask = taskRepository.findById(id);
+
+        if (optionalTask.isPresent()) {
+            Task task = optionalTask.get();
+            task.setCompleted(true);
+            return taskRepository.save(task);
+        }
+
         return null;
     }
 
-    public Task completeTaskById(Long id) {
-        for (Task task : tasks) {
-            if (task.getId().equals(id)) {
-                task.setCompleted(true);
-                return task;
-            }
-        }
-        return null;
-    }
 }
