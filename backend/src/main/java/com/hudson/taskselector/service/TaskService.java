@@ -1,8 +1,13 @@
 package com.hudson.taskselector.service;
 
+import com.hudson.taskselector.exception.TaskNotFoundException;
 import com.hudson.taskselector.model.Task;
 import com.hudson.taskselector.repository.TaskRepository;
 import org.springframework.stereotype.Service;
+import com.hudson.taskselector.exception.TaskNotFoundException;
+import com.hudson.taskselector.dto.UpdateTaskRequest;
+import com.hudson.taskselector.mapper.TaskMapper;
+import com.hudson.taskselector.exception.NoTaskSelectedException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,9 +17,11 @@ import java.util.Optional;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final TaskMapper taskMapper;
 
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper) {
         this.taskRepository = taskRepository;
+        this.taskMapper = taskMapper;
     }
 
     public List<Task> getAllTasks() {
@@ -47,7 +54,7 @@ public class TaskService {
         }
 
         if (candidates.isEmpty()) {
-            return null;
+            throw new NoTaskSelectedException();
         }
 
         if (random != null && random) {
@@ -78,32 +85,21 @@ public class TaskService {
         return bestTask;
     }
 
-    public Task updateTaskById(Long id, Task updatedTask) {
-        Optional<Task> optionalTask = taskRepository.findById(id);
+    public Task updateTaskById(Long id, UpdateTaskRequest request) {
+        Task task = taskRepository.findById(id)
+            .orElseThrow(() -> new TaskNotFoundException(id));
 
-        if (optionalTask.isPresent()) {
-            Task task = optionalTask.get();
-            task.setTitle(updatedTask.getTitle());
-            task.setPriority(updatedTask.getPriority());
-            task.setCategory(updatedTask.getCategory());
-            task.setCompleted(updatedTask.isCompleted());
-            return taskRepository.save(task);
-        }
-
-        return null;
+        taskMapper.updateEntity(task, request);
+        return taskRepository.save(task);
     }
         
 
     public Task completeTaskById(Long id) {
-        Optional<Task> optionalTask = taskRepository.findById(id);
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
 
-        if (optionalTask.isPresent()) {
-            Task task = optionalTask.get();
-            task.setCompleted(true);
-            return taskRepository.save(task);
-        }
-
-        return null;
+        task.setCompleted(true);
+        return taskRepository.save(task);
     }
 
 }
