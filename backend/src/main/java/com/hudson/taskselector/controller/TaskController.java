@@ -9,6 +9,8 @@ import com.hudson.taskselector.service.TaskService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import com.hudson.taskselector.dto.UpdateTaskRequest;
+import com.hudson.taskselector.dto.SelectedTaskResponse;
+import com.hudson.taskselector.service.ScoreCalculator;
 
 import java.util.List;
 
@@ -18,10 +20,12 @@ public class TaskController {
 
     private final TaskService taskService;
     private final TaskMapper taskMapper;
+    private final ScoreCalculator scoreCalculator;
 
-    public TaskController(TaskService taskService, TaskMapper taskMapper) {
+    public TaskController(TaskService taskService, TaskMapper taskMapper, ScoreCalculator scoreCalculator) {
         this.taskService = taskService;
         this.taskMapper = taskMapper;
+        this.scoreCalculator = scoreCalculator;
     }
 
     @GetMapping
@@ -40,7 +44,7 @@ public class TaskController {
     }
 
     @PostMapping("/select-task")
-    public TaskResponse selectTask(@RequestBody SelectTaskRequest request) {
+    public SelectedTaskResponse selectTask(@RequestBody SelectTaskRequest request) {
         Task selectedTask = taskService.selectTask(
                 request.getCategory(),
                 request.getMinPriority(),
@@ -48,7 +52,10 @@ public class TaskController {
                 request.getIncludeCompleted()
         );
 
-        return taskMapper.toResponse(selectedTask);
+        int score = scoreCalculator.calculateScore(selectedTask);
+        String reason = scoreCalculator.explainScore(selectedTask);
+
+        return taskMapper.toSelectedTaskResponse(selectedTask, score, reason);
     }
 
     @PutMapping("/{id}/complete")

@@ -5,6 +5,7 @@ import com.hudson.taskselector.dto.TaskResponse;
 import com.hudson.taskselector.model.Task;
 import org.springframework.stereotype.Component;
 import com.hudson.taskselector.dto.UpdateTaskRequest;
+import com.hudson.taskselector.dto.SelectedTaskResponse;
 
 @Component
 public class TaskMapper {
@@ -33,5 +34,13 @@ public class TaskMapper {
         task.setPriority(request.getPriority());
         task.setCategory(request.getCategory());
         task.setCompleted(request.isCompleted());
+    }
+
+    public SelectedTaskResponse toSelectedTaskResponse(Task task, int score, String reason) {
+        return new SelectedTaskResponse(
+                toResponse(task),
+                score,
+                reason
+        );
     }
 }

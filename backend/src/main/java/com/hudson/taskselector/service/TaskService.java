@@ -8,6 +8,7 @@ import com.hudson.taskselector.exception.TaskNotFoundException;
 import com.hudson.taskselector.dto.UpdateTaskRequest;
 import com.hudson.taskselector.mapper.TaskMapper;
 import com.hudson.taskselector.exception.NoTaskSelectedException;
+import com.hudson.taskselector.service.ScoreCalculator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +19,12 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
+    private final ScoreCalculator scoreCalculator;
 
-    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper) {
+    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper, ScoreCalculator scoreCalculator) {
         this.taskRepository = taskRepository;
         this.taskMapper = taskMapper;
+        this.scoreCalculator = scoreCalculator;
     }
 
     public List<Task> getAllTasks() {
@@ -66,15 +69,7 @@ public class TaskService {
         int bestScore = Integer.MIN_VALUE;
 
         for (Task task : candidates) {
-            int score = 0;
-
-            // Base score: priority
-            score += task.getPriority() * 10;
-
-            // Slight bonus for incomplete tasks
-            if(!task.isCompleted()) {
-                score += 5;
-            }
+            int score = scoreCalculator.calculateScore(task);
 
             if (bestTask == null || score > bestScore) {
                 bestTask = task;
