@@ -28,4 +28,26 @@ public class ScoreCalculatorTest {
 
         assertEquals(40, score);
     }
+
+    @Test
+    void explainScore_usesDefaultWeightsWhenOverridesAreNull() {
+        ScoreCalculator calculator = new ScoreCalculator(10, 5);
+
+        Task task = new Task(1L, "Task", 4, "school", false);
+
+        String explanation = calculator.explainScore(task, null, null);
+
+        assertEquals("Priority 4 × weight 10, plus incomplete bonus 5", explanation);
+    }
+
+    @Test
+    void explainScore_usesOverrideWeightsWhenProvided() {
+        ScoreCalculator calculator = new ScoreCalculator(10, 5);
+
+        Task task = new Task(1L, "Task", 4, "school", false);
+
+    String explanation = calculator.explainScore(task, 5, 30);
+
+        assertEquals("Priority 4 × weight 5, plus incomplete bonus 30", explanation);
+    }
 }

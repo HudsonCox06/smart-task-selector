@@ -46,16 +46,36 @@ public class TaskController {
     @PostMapping("/select-task")
     public SelectedTaskResponse selectTask(@RequestBody SelectTaskRequest request) {
         Task selectedTask = taskService.selectTask(
-                request.getCategory(),
-                request.getMinPriority(),
-                request.getRandom(),
-                request.getIncludeCompleted()
+            request.getCategory(),
+            request.getMinPriority(),
+            request.getRandom(),
+            request.getIncludeCompleted(),
+            request.getPriorityWeight(),
+            request.getIncompleteBonus()
         );
 
-        int score = scoreCalculator.calculateScore(selectedTask);
-        String reason = scoreCalculator.explainScore(selectedTask);
+        int priorityWeightUsed = scoreCalculator.getEffectivePriorityWeight(request.getPriorityWeight());
+        int incompleteBonusUsed = scoreCalculator.getEffectiveIncompleteBonus(request.getIncompleteBonus());
 
-        return taskMapper.toSelectedTaskResponse(selectedTask, score, reason);
+        int score = scoreCalculator.calculateScore(
+                selectedTask,
+                request.getPriorityWeight(),
+                request.getIncompleteBonus()
+        );
+
+        String reason = scoreCalculator.explainScore(
+                selectedTask,
+                request.getPriorityWeight(),
+                request.getIncompleteBonus()
+        );
+
+        return taskMapper.toSelectedTaskResponse(
+                selectedTask,
+                score,
+                reason,
+                priorityWeightUsed,
+                incompleteBonusUsed
+        );
     }
 
     @PutMapping("/{id}/complete")

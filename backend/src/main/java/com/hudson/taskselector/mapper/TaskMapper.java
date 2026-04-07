@@ -36,11 +36,20 @@ public class TaskMapper {
         task.setCompleted(request.isCompleted());
     }
 
-    public SelectedTaskResponse toSelectedTaskResponse(Task task, int score, String reason) {
+    public SelectedTaskResponse toSelectedTaskResponse(
+            Task task,
+            int score,
+            String reason,
+            int priorityWeightUsed,
+            int incompleteBonusUsed) {
+
         return new SelectedTaskResponse(
                 toResponse(task),
                 score,
-                reason
+                reason,
+                priorityWeightUsed,
+                incompleteBonusUsed
         );
     }
 }
+

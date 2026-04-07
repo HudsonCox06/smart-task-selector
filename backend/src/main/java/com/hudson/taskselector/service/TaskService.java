@@ -36,7 +36,14 @@ public class TaskService {
     }
     
 
-    public Task selectTask(String category, Integer minPriority, Boolean random, Boolean includeCompleted) {
+    public Task selectTask(
+        String category,
+        Integer minPriority,
+        Boolean random,
+        Boolean includeCompleted,
+        Integer priorityWeightOverride,
+        Integer incompleteBonusOverride) {
+
         List<Task> tasks = taskRepository.findAll();
         List<Task> candidates = new ArrayList<>();
 
@@ -69,7 +76,11 @@ public class TaskService {
         int bestScore = Integer.MIN_VALUE;
 
         for (Task task : candidates) {
-            int score = scoreCalculator.calculateScore(task);
+            int score = scoreCalculator.calculateScore(
+                    task,
+                    priorityWeightOverride,
+                    incompleteBonusOverride
+            );
 
             if (bestTask == null || score > bestScore) {
                 bestTask = task;

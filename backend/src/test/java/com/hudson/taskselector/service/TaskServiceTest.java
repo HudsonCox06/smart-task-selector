@@ -24,7 +24,7 @@ public class TaskServiceTest {
 
         TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
 
-        Task result = service.selectTask("school", 1, false, false);
+        Task result = service.selectTask("school", 1, false, false, null, null);
 
         assertEquals("High", result.getTitle());
     }
@@ -41,7 +41,7 @@ public class TaskServiceTest {
 
         TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
 
-        Task result = service.selectTask("school", 3, false, false);
+        Task result = service.selectTask("school", 3, false, false, null, null);
 
         assertEquals("High school", result.getTitle());
     }
@@ -57,7 +57,7 @@ public class TaskServiceTest {
 
         TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
 
-        Task result = service.selectTask("school", 1, false, true);
+        Task result = service.selectTask("school", 1, false, true, null, null);
 
         assertEquals("Completed High", result.getTitle());
     }
@@ -73,8 +73,24 @@ public class TaskServiceTest {
 
         TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
 
-        Task result = service.selectTask("school", 1, false, false);
+        Task result = service.selectTask("school", 1, false, false, null, null);
 
         assertEquals("Task A", result.getTitle());
+    }
+
+    @Test
+    void selectTask_usesRequestOverridesToChangeSelection() {
+        TaskRepository mockRepo = mock(TaskRepository.class);
+
+        Task highCompleted = new Task(1L, "High Completed", 5, "school", true);
+        Task lowerIncomplete = new Task(2L, "Lower Incomplete", 4, "school", false);
+
+        when(mockRepo.findAll()).thenReturn(List.of(highCompleted, lowerIncomplete));
+
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+
+        Task result = service.selectTask("school", 1, false, true, 5, 30);
+
+        assertEquals("Lower Incomplete", result.getTitle());
     }
 }

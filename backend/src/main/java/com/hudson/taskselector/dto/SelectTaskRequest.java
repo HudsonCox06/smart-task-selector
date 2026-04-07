@@ -6,6 +6,8 @@ public class SelectTaskRequest {
     private Integer minPriority;
     private Boolean random;
     private Boolean includeCompleted;
+    private Integer priorityWeight;
+    private Integer incompleteBonus;
 
     public SelectTaskRequest() {
     }
@@ -40,5 +42,21 @@ public class SelectTaskRequest {
 
     public void setIncludeCompleted(Boolean includeCompleted) {
         this.includeCompleted = includeCompleted;
+    }
+
+    public Integer getPriorityWeight() {
+        return priorityWeight;
+    }
+
+    public void setPriorityWeight(Integer priorityWeight) {
+        this.priorityWeight = priorityWeight;
+    }
+
+    public Integer getIncompleteBonus() {
+        return incompleteBonus;
+    }
+
+    public void setIncompleteBonus(Integer incompleteBonus) {
+        this.incompleteBonus = incompleteBonus;
     }
 }
