@@ -1,11 +1,12 @@
 package com.hudson.taskselector.mapper;
 
 import com.hudson.taskselector.dto.CreateTaskRequest;
-import com.hudson.taskselector.dto.TaskResponse;
-import com.hudson.taskselector.model.Task;
-import org.springframework.stereotype.Component;
-import com.hudson.taskselector.dto.UpdateTaskRequest;
 import com.hudson.taskselector.dto.SelectedTaskResponse;
+import com.hudson.taskselector.dto.TaskResponse;
+import com.hudson.taskselector.dto.UpdateTaskRequest;
+import com.hudson.taskselector.model.Task;
+import com.hudson.taskselector.model.TaskStatus;
+import org.springframework.stereotype.Component;
 
 @Component
 public class TaskMapper {
@@ -15,7 +16,7 @@ public class TaskMapper {
         task.setTitle(request.getTitle());
         task.setPriority(request.getPriority());
         task.setCategory(request.getCategory());
-        task.setCompleted(false);
+        task.setStatus(TaskStatus.OPEN);
         return task;
     }
 
@@ -25,7 +26,9 @@ public class TaskMapper {
                 task.getTitle(),
                 task.getPriority(),
                 task.getCategory(),
-                task.isCompleted()
+                task.getStatus(),
+                task.getClaimedBy(),
+                task.getClaimedAt()
         );
     }
 
@@ -33,7 +36,6 @@ public class TaskMapper {
         task.setTitle(request.getTitle());
         task.setPriority(request.getPriority());
         task.setCategory(request.getCategory());
-        task.setCompleted(request.isCompleted());
     }
 
     public SelectedTaskResponse toSelectedTaskResponse(

@@ -1,14 +1,19 @@
 package com.hudson.taskselector.dto;
 
-public class SelectTaskRequest {
+import jakarta.validation.constraints.NotBlank;
+
+public class ClaimBestTaskRequest {
 
     private String category;
     private Integer minPriority;
+
+    @NotBlank(message = "User ID is required")
+    private String userId;
+
     private Integer priorityWeight;
     private Integer incompleteBonus;
 
-    public SelectTaskRequest() {
-    }
+    public ClaimBestTaskRequest() {}
 
     public String getCategory() {
         return category;
@@ -24,6 +29,14 @@ public class SelectTaskRequest {
 
     public void setMinPriority(Integer minPriority) {
         this.minPriority = minPriority;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public Integer getPriorityWeight() {

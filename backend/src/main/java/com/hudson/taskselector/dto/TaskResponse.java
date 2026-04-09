@@ -1,22 +1,38 @@
 package com.hudson.taskselector.dto;
 
+import com.hudson.taskselector.model.TaskStatus;
+
+import java.time.LocalDateTime;
+
 public class TaskResponse {
 
     private Long id;
     private String title;
     private int priority;
     private String category;
-    private boolean completed;
+    private TaskStatus status;
+    private String claimedBy;
+    private LocalDateTime claimedAt;
 
     public TaskResponse() {
     }
 
-    public TaskResponse(Long id, String title, int priority, String category, boolean completed) {
+    public TaskResponse(
+            Long id,
+            String title,
+            int priority,
+            String category,
+            TaskStatus status,
+            String claimedBy,
+            LocalDateTime claimedAt
+    ) {
         this.id = id;
         this.title = title;
         this.priority = priority;
         this.category = category;
-        this.completed = completed;
+        this.status = status;
+        this.claimedBy = claimedBy;
+        this.claimedAt = claimedAt;
     }
 
     public Long getId() {
@@ -51,11 +67,27 @@ public class TaskResponse {
         this.category = category;
     }
 
-    public boolean isCompleted() {
-        return completed;
+    public TaskStatus getStatus() {
+        return status;
     }
 
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
+    public void setStatus(TaskStatus status) {
+        this.status = status;
+    }
+
+    public String getClaimedBy() {
+        return claimedBy;
+    }
+
+    public void setClaimedBy(String claimedBy) {
+        this.claimedBy = claimedBy;
+    }
+
+    public LocalDateTime getClaimedAt() {
+        return claimedAt;
+    }
+
+    public void setClaimedAt(LocalDateTime claimedAt) {
+        this.claimedAt = claimedAt;
     }
 }

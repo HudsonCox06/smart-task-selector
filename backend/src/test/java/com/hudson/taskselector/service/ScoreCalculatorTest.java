@@ -1,6 +1,8 @@
 package com.hudson.taskselector.service;
 
 import com.hudson.taskselector.model.Task;
+import com.hudson.taskselector.model.TaskStatus;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,7 +13,7 @@ public class ScoreCalculatorTest {
     void calculateScore_returnsPriorityTimesWeightPlusIncompleteBonus() {
         ScoreCalculator calculator = new ScoreCalculator(10, 5);
 
-        Task task = new Task(1L, "Test Task", 4, "school", false);
+        Task task = new Task(1L, "Test Task", 4, "school", TaskStatus.OPEN);
 
         int score = calculator.calculateScore(task);
 
@@ -22,7 +24,7 @@ public class ScoreCalculatorTest {
     void calculateScore_doesNotAddIncompleteBonusForCompletedTask() {
         ScoreCalculator calculator = new ScoreCalculator(10, 5);
 
-        Task task = new Task(1L, "Completed Task", 4, "school", true);
+        Task task = new Task(1L, "Completed Task", 4, "school", TaskStatus.COMPLETED);
 
         int score = calculator.calculateScore(task);
 
@@ -33,7 +35,7 @@ public class ScoreCalculatorTest {
     void explainScore_usesDefaultWeightsWhenOverridesAreNull() {
         ScoreCalculator calculator = new ScoreCalculator(10, 5);
 
-        Task task = new Task(1L, "Task", 4, "school", false);
+        Task task = new Task(1L, "Task", 4, "school", TaskStatus.OPEN);
 
         String explanation = calculator.explainScore(task, null, null);
 
@@ -44,7 +46,7 @@ public class ScoreCalculatorTest {
     void explainScore_usesOverrideWeightsWhenProvided() {
         ScoreCalculator calculator = new ScoreCalculator(10, 5);
 
-        Task task = new Task(1L, "Task", 4, "school", false);
+        Task task = new Task(1L, "Task", 4, "school", TaskStatus.OPEN);
 
     String explanation = calculator.explainScore(task, 5, 30);
 

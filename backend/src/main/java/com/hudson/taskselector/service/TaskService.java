@@ -1,18 +1,17 @@
 package com.hudson.taskselector.service;
 
+import com.hudson.taskselector.dto.UpdateTaskRequest;
+import com.hudson.taskselector.exception.NoTaskSelectedException;
 import com.hudson.taskselector.exception.TaskNotFoundException;
+import com.hudson.taskselector.mapper.TaskMapper;
 import com.hudson.taskselector.model.Task;
+import com.hudson.taskselector.model.TaskStatus;
 import com.hudson.taskselector.repository.TaskRepository;
 import org.springframework.stereotype.Service;
-import com.hudson.taskselector.exception.TaskNotFoundException;
-import com.hudson.taskselector.dto.UpdateTaskRequest;
-import com.hudson.taskselector.mapper.TaskMapper;
-import com.hudson.taskselector.exception.NoTaskSelectedException;
-import com.hudson.taskselector.service.ScoreCalculator;
+import com.hudson.taskselector.dto.SelectionResult;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class TaskService {
@@ -34,43 +33,41 @@ public class TaskService {
     public Task addTask(Task task) {
         return taskRepository.save(task);
     }
-    
 
-    public Task selectTask(
-        String category,
-        Integer minPriority,
-        Boolean random,
-        Boolean includeCompleted,
-        Integer priorityWeightOverride,
-        Integer incompleteBonusOverride) {
+    public SelectionResult selectTask(
+            String category,
+            Integer minPriority,
+            Integer priorityWeightOverride,
+            Integer incompleteBonusOverride) {
 
-        List<Task> tasks = taskRepository.findAll();
         List<Task> candidates = new ArrayList<>();
 
-        for (Task task : tasks) {
-            if ((includeCompleted == null || !includeCompleted) && task.isCompleted()) {
-                continue;
+        if (category != null && !category.isBlank()) {
+            if (minPriority != null) {
+                candidates = taskRepository
+                        .findByStatusAndCategoryIgnoreCaseAndPriorityGreaterThanEqual(
+                                TaskStatus.OPEN,
+                                category,
+                                minPriority
+                        );
+            } else {
+                candidates = taskRepository
+                        .findByStatusAndCategoryIgnoreCase(
+                                TaskStatus.OPEN,
+                                category
+                        );
             }
+        } else {
+            candidates = taskRepository.findByStatus(TaskStatus.OPEN);
+        }   
 
-            if (category != null && !category.isBlank() && !task.getCategory().equalsIgnoreCase(category)) {
-                continue;
-            }
-
-            if (minPriority != null && task.getPriority() < minPriority) {
-            continue;
-            }
-
-            candidates.add(task);
-        }
 
         if (candidates.isEmpty()) {
             throw new NoTaskSelectedException();
         }
 
-        if (random != null && random) {
-            int index = (int) (Math.random() * candidates.size());
-            return candidates.get(index);
-        }
+        int priorityWeightUsed = scoreCalculator.getEffectivePriorityWeight(priorityWeightOverride);
+        int incompleteBonusUsed = scoreCalculator.getEffectiveIncompleteBonus(incompleteBonusOverride);
 
         Task bestTask = null;
         int bestScore = Integer.MIN_VALUE;
@@ -87,25 +84,82 @@ public class TaskService {
                 bestScore = score;
             }
         }
+    
 
-        return bestTask;
+        String reason = scoreCalculator.explainScore(
+                bestTask,
+                priorityWeightOverride,
+                incompleteBonusOverride
+        );
+
+        return new SelectionResult(
+            bestTask,
+            bestScore,
+            reason,
+            priorityWeightUsed,
+            incompleteBonusUsed
+        );
     }
 
     public Task updateTaskById(Long id, UpdateTaskRequest request) {
         Task task = taskRepository.findById(id)
-            .orElseThrow(() -> new TaskNotFoundException(id));
+                .orElseThrow(() -> new TaskNotFoundException(id));
 
         taskMapper.updateEntity(task, request);
         return taskRepository.save(task);
     }
-        
 
     public Task completeTaskById(Long id) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new TaskNotFoundException(id));
 
-        task.setCompleted(true);
+        task.complete();
         return taskRepository.save(task);
     }
 
+    public Task claimTaskById(Long id, String userId) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
+
+        task.claim(userId);
+        return taskRepository.save(task);
+    }
+
+    public SelectionResult claimBestTask(
+            String category,
+            Integer minPriority,
+            String userId,
+            Integer priorityWeightOverride,
+            Integer incompleteBonusOverride
+    ) {
+        for (int attempt = 0; attempt < 2; attempt++) {
+
+            SelectionResult selection = selectTask(
+                    category,
+                    minPriority,
+                    priorityWeightOverride,
+                    incompleteBonusOverride
+            );
+
+            Task task = selection.getTask();
+
+            try {
+                task.claim(userId);
+                taskRepository.save(task);
+
+                return new SelectionResult(
+                        task,
+                        selection.getScore(),
+                        selection.getReason(),
+                        selection.getPriorityWeightUsed(),
+                        selection.getIncompleteBonusUsed()
+                );
+
+            } catch (org.springframework.orm.ObjectOptimisticLockingFailureException ex) {
+                // retry
+            }
+        }
+
+        throw new IllegalStateException("Failed to claim task due to concurrent updates.");
+    }
 }

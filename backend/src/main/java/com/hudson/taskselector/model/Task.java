@@ -4,6 +4,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Version;
+
+import java.time.LocalDateTime;
 
 @Entity
 public class Task {
@@ -11,21 +14,27 @@ public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     private String title;
     private int priority;
     private String category;
-    private boolean completed;
+    private String claimedBy;
+    private LocalDateTime claimedAt;
+
+    @Version
+    private Long version;
+
+    private TaskStatus status = TaskStatus.OPEN;
 
     public Task() {
     }
 
-    public Task(Long id, String title, int priority, String category, boolean completed) {
+    public Task(Long id, String title, int priority, String category, TaskStatus status) {
         this.id = id;
         this.title = title;
         this.priority = priority;
         this.category = category;
-        this.completed = completed;
+        this.status = status;
     }
 
     public Long getId() {
@@ -60,11 +69,55 @@ public class Task {
         this.category = category;
     }
 
-    public boolean isCompleted() {
-        return completed;
+    public TaskStatus getStatus() {
+        return status;
     }
 
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
+    public void setStatus(TaskStatus status) {
+        this.status = status;
+    }
+
+    public String getClaimedBy() {
+        return claimedBy;
+    }
+
+    public void setClaimedBy(String claimedBy) {
+        this.claimedBy = claimedBy;
+    }
+
+    public LocalDateTime getClaimedAt() {
+        return claimedAt;
+    }
+
+    public void setClaimedAt(LocalDateTime claimedAt) {
+        this.claimedAt = claimedAt;
+    }
+
+    public boolean isOpen() {
+        return status == TaskStatus.OPEN;
+    }
+
+    public boolean isClaimed() {
+        return status == TaskStatus.CLAIMED;
+    }
+
+    public boolean isCompleted() {
+        return status == TaskStatus.COMPLETED;
+    }
+
+    public void claim(String userId) {
+        if (status != TaskStatus.OPEN) {
+            throw new IllegalStateException("Only OPEN tasks can be claimed.");
+        }
+        this.status = TaskStatus.CLAIMED;
+        this.claimedBy = userId;
+        this.claimedAt = LocalDateTime.now();
+    }
+
+    public void complete() {
+        if (status != TaskStatus.CLAIMED) {
+            throw new IllegalStateException("Only CLAIMED tasks can be completed.");
+        }
+        this.status = TaskStatus.COMPLETED;
     }
 }

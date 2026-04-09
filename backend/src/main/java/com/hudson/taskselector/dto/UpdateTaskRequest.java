@@ -16,8 +16,6 @@ public class UpdateTaskRequest {
     @NotBlank(message = "Category is required")
     private String category;
 
-    private boolean completed;
-
     public UpdateTaskRequest() {}
 
     public String getTitle() {
@@ -42,13 +40,5 @@ public class UpdateTaskRequest {
 
     public void setCategory(String category) {
         this.category = category;
-    }
-
-    public boolean isCompleted() {
-        return completed;
-    }
-
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
     }
 }
