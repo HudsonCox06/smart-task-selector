@@ -4,7 +4,7 @@
 ## Title
 
 ```md
-# Smart Task Selector Backend
+Smart Task Selector Backend
 ```
 
 ---
@@ -124,8 +124,6 @@ This ensures that a task can only be claimed once, even under concurrent request
 - H2 (development)
 - JUnit + Mockito
 ```
-
-(Optional later: PostgreSQL + Flyway)
 
 ---
 
