@@ -5,6 +5,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Version;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +26,7 @@ public class Task {
     @Version
     private Long version;
 
+    @Enumerated(EnumType.STRING)
     private TaskStatus status = TaskStatus.OPEN;
 
     public Task() {

@@ -1,44 +1,33 @@
 package com.hudson.taskselector.service;
 
-import com.hudson.taskselector.dto.UpdateTaskRequest;
-import com.hudson.taskselector.exception.NoTaskSelectedException;
-import com.hudson.taskselector.exception.TaskNotFoundException;
-import com.hudson.taskselector.mapper.TaskMapper;
 import com.hudson.taskselector.model.Task;
 import com.hudson.taskselector.model.TaskStatus;
 import com.hudson.taskselector.repository.TaskRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.hudson.taskselector.dto.SelectionResult;
+import com.hudson.taskselector.exception.NoTaskSelectedException;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 
 @Service
-public class TaskService {
+public class TaskClaimService {
 
     private final TaskRepository taskRepository;
-    private final TaskMapper taskMapper;
     private final ScoreCalculator scoreCalculator;
-    private final TaskClaimService taskClaimService;
 
-    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper, ScoreCalculator scoreCalculator, TaskClaimService taskClaimService) {
+    public TaskClaimService(TaskRepository taskRepository, 
+                            ScoreCalculator scoreCalculator) {
         this.taskRepository = taskRepository;
-        this.taskMapper = taskMapper;
         this.scoreCalculator = scoreCalculator;
-        this.taskClaimService = taskClaimService;
     }
 
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
-    }
-
-    public Task addTask(Task task) {
-        return taskRepository.save(task);
-    }
-
-    public SelectionResult selectTask(
+    @Transactional
+    public SelectionResult attemptClaimBestTask(
             String category,
             Integer minPriority,
+            String userId,
             Integer priorityWeightOverride,
             Integer incompleteBonusOverride) {
 
@@ -94,49 +83,24 @@ public class TaskService {
                 incompleteBonusOverride
         );
 
-        return new SelectionResult(
+        SelectionResult selection = new SelectionResult(
             bestTask,
             bestScore,
             reason,
             priorityWeightUsed,
             incompleteBonusUsed
         );
-    }
 
-    public Task updateTaskById(Long id, UpdateTaskRequest request) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
-
-        taskMapper.updateEntity(task, request);
-        return taskRepository.save(task);
-    }
-
-    public Task completeTaskById(Long id) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
-
-        task.complete();
-        return taskRepository.save(task);
-    }
-
-    public Task claimTaskById(Long id, String userId) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
-
+        Task task = selection.getTask();
         task.claim(userId);
-        return taskRepository.save(task);
-    }
+        taskRepository.save(task);
 
-    
-    public SelectionResult claimBestTask(String category, Integer minPriority, String userId, Integer priorityWeightOverride, Integer incompleteBonusOverride) {
-        for(int attempt = 0; attempt < 2; attempt++){
-            try{
-                return taskClaimService.attemptClaimBestTask(category, minPriority, userId, priorityWeightOverride, incompleteBonusOverride);
-            } catch(org.springframework.orm.ObjectOptimisticLockingFailureException ex){
-                // retry
-            }
-        }
-        throw new IllegalStateException("Failed to claim task after retries.");
+        return new SelectionResult(
+                task,
+                selection.getScore(),
+                selection.getReason(),
+                selection.getPriorityWeightUsed(),
+                selection.getIncompleteBonusUsed()
+        );
     }
-
 }

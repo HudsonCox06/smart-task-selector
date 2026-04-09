@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,7 +26,8 @@ public class TaskServiceTest {
                 TaskStatus.OPEN, "school", 1))
                 .thenReturn(List.of(low, high));
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         SelectionResult result = service.selectTask("school", 1,null, null);
 
@@ -47,7 +49,8 @@ public class TaskServiceTest {
                 TaskStatus.OPEN, "school", 3))
                 .thenReturn(List.of(task3));
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         SelectionResult result = service.selectTask("school", 3,null, null);
 
@@ -67,7 +70,8 @@ public class TaskServiceTest {
                 TaskStatus.OPEN, "school", 1))
                 .thenReturn(List.of(task1, task2));
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         SelectionResult result = service.selectTask("school", 1,null, null);
 
@@ -86,7 +90,8 @@ public class TaskServiceTest {
                 TaskStatus.OPEN, "school", 1))
                 .thenReturn(List.of(higherPriority, lowerPriority));
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         SelectionResult result = service.selectTask("school", 1, 5, 30);
 
@@ -104,7 +109,8 @@ public class TaskServiceTest {
 
         when(mockRepo.findById(1L)).thenReturn(java.util.Optional.of(completedTask));
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalStateException.class,
@@ -122,7 +128,8 @@ public class TaskServiceTest {
         when(mockRepo.findById(1L)).thenReturn(java.util.Optional.of(claimedTask));
         when(mockRepo.save(claimedTask)).thenReturn(claimedTask);
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         Task result = service.completeTaskById(1L);
 
@@ -137,7 +144,8 @@ public class TaskServiceTest {
 
         when(mockRepo.findById(1L)).thenReturn(java.util.Optional.of(openTask));
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalStateException.class,
@@ -154,7 +162,8 @@ public class TaskServiceTest {
         when(mockRepo.findById(1L)).thenReturn(java.util.Optional.of(openTask));
         when(mockRepo.save(openTask)).thenReturn(openTask);
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         Task result = service.claimTaskById(1L, "hudson");
 
@@ -171,7 +180,8 @@ public class TaskServiceTest {
 
         when(mockRepo.findById(1L)).thenReturn(java.util.Optional.of(claimedTask));
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalStateException.class,
@@ -186,13 +196,15 @@ public class TaskServiceTest {
         Task low = new Task(1L, "Low", 1, "school", TaskStatus.OPEN);
         Task high = new Task(2L, "High", 5, "school", TaskStatus.OPEN);
 
-        when(mockRepo.findByStatusAndCategoryIgnoreCaseAndPriorityGreaterThanEqual(
-                TaskStatus.OPEN, "school", 1))
-                .thenReturn(List.of(low, high));
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5), mockTaskClaimService);
 
-        when(mockRepo.save(high)).thenReturn(high);
-
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
+        when(mockTaskClaimService.attemptClaimBestTask("school", 1, "hudson", null, null))
+                .thenAnswer(invocation -> {
+                    Task taskToClaim = high;
+                    taskToClaim.claim("hudson");
+                    return new SelectionResult(taskToClaim, 55, "Selected based on score", 10, 5);
+                });
 
         SelectionResult result = service.claimBestTask("school", 1, "hudson", null, null);
 
@@ -203,42 +215,32 @@ public class TaskServiceTest {
 
     @Test
     void claimBestTask_throwsWhenTaskAlreadyClaimed() {
-        TaskRepository mockRepo = mock(TaskRepository.class);
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mock(TaskRepository.class), null, 
+                                              new ScoreCalculator(10, 5), mockTaskClaimService);
 
-        Task claimed = new Task(1L, "Claimed", 5, "school", TaskStatus.CLAIMED);
-        claimed.setClaimedBy("someone");
+        when(mockTaskClaimService.attemptClaimBestTask("school", 1, "hudson", null, null))
+                .thenThrow(new com.hudson.taskselector.exception.NoTaskSelectedException());
 
-        when(mockRepo.findByStatusAndCategoryIgnoreCaseAndPriorityGreaterThanEqual(
-                TaskStatus.OPEN, "school", 1))
-                .thenReturn(List.of());
-
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
-
-        org.junit.jupiter.api.Assertions.assertThrows(
-                Exception.class,
-                () -> service.claimBestTask("school", 1, "hudson", null, null)
-        );
+        assertThrows(Exception.class, 
+                () -> service.claimBestTask("school", 1, "hudson", null, null));
     }
 
     @Test
     void claimBestTask_onlyOneThreadClaimsTask() throws Exception {
-        TaskRepository mockRepo = mock(TaskRepository.class);
+        TaskClaimService mockTaskClaimService = mock(TaskClaimService.class);
+        TaskService service = new TaskService(mock(TaskRepository.class), null,
+                                              new ScoreCalculator(10, 5), mockTaskClaimService);
 
         Task task = new Task(1L, "Important Task", 5, "school", TaskStatus.OPEN);
+        SelectionResult successResult = new SelectionResult(task, 55, "reason", 10, 5);
 
-        // Always return the same task for selection
-        when(mockRepo.findByStatusAndCategoryIgnoreCaseAndPriorityGreaterThanEqual(
-                TaskStatus.OPEN, "school", 1))
-                .thenReturn(List.of(task));
-
-        // Simulate optimistic locking: first save succeeds, second fails
-        when(mockRepo.save(task))
-                .thenReturn(task)
+        when(mockTaskClaimService.attemptClaimBestTask("school", 1, "user", null, null))
+                .thenReturn(successResult)
                 .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(Task.class, 1L));
 
-        TaskService service = new TaskService(mockRepo, null, new ScoreCalculator(10, 5));
-
-        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        java.util.concurrent.ExecutorService executor = 
+                java.util.concurrent.Executors.newFixedThreadPool(2);
 
         java.util.concurrent.Callable<Boolean> call = () -> {
             try {
@@ -248,6 +250,7 @@ public class TaskServiceTest {
                 return false;
             }
         };
+    
 
         var future1 = executor.submit(call);
         var future2 = executor.submit(call);
@@ -255,9 +258,7 @@ public class TaskServiceTest {
         boolean result1 = future1.get();
         boolean result2 = future2.get();
 
-        // Exactly one should succeed
         assertEquals(1, (result1 ? 1 : 0) + (result2 ? 1 : 0));
-
         executor.shutdown();
     }
 }
