@@ -44,7 +44,7 @@ public class TaskController {
     }
 
     @PostMapping("/select-task")
-    public SelectedTaskResponse selectTask(@RequestBody SelectTaskRequest request) {
+    public SelectedTaskResponse selectTask(@Valid @RequestBody SelectTaskRequest request) {
         SelectionResult result = taskService.selectTask(
                 request.getCategory(),
                 request.getMinPriority(),
