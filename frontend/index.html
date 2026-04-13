@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Task Selector</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <h1>Smart Task Selector</h1>
+
+    <section>
+        <h2>Create Task</h2>
+        <form id="create-task-form">
+            <input type="text" id="title" placeholder="Title" required>
+            <input type="number" id="priority" placeholder="Priority (1-5)" min="1" max="5" required>
+            <input type="text" id="category" placeholder="Category" required>
+            <button type="submit">Add Task</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Claim Best Task</h2>
+        <form id="claim-best-task-form">
+            <input type="text" id="claim-category" placeholder="Category (optional)">
+            <input type="text" id="claim-user" placeholder="User ID" required>
+            <button id="claim-best-btn">Claim Best Task</button>
+            <div id="claim-result"></div>
+        </form>
+    </section>
+
+    <section>
+        <h2>All Tasks</h2>
+        <button id="refresh-btn">Refresh</button>
+        <ul id="task-list"></ul>
+    </section>
+</body>
+</html>
