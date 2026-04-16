@@ -1,91 +1,134 @@
+# Smart Task Selector
+
+A Spring Boot backend that selects and assigns tasks using a configurable scoring system, built around a single hard problem: **when two users request the "best" task at the same time, only one of them can get it.**
+
+This project is a focused study in domain modeling, REST API design, and concurrency control. The frontend is intentionally minimal — the interesting work is on the server.
 
 ---
 
-## Title
+## The Problem
 
-```md
-Smart Task Selector Backend
-```
+Picking the highest-scoring open task is easy. Picking it *and* assigning it atomically, under concurrent load, is not. A naive implementation has a race:
 
----
+1. User A reads the list of open tasks, picks the best one.
+2. User B reads the same list, picks the same one.
+3. Both write back `CLAIMED`. One write silently overwrites the other.
 
-## 1. Overview
-
-```md
-A Spring Boot backend that selects and assigns tasks using a configurable scoring system and enforces a safe task lifecycle under concurrent access.
-
-This project focuses on backend correctness, domain modeling, and concurrency handling rather than frontend features.
-```
+Smart Task Selector solves this with optimistic locking via JPA's `@Version` annotation. Concurrent claims on the same task produce an `ObjectOptimisticLockingFailureException`; the losing request retries on a fresh candidate set.
 
 ---
 
-## 2. Core Problem
+## Features
 
-```md
-Selecting the "best" task is not enough in a multi-user system.
-
-If two users request the best task at the same time, both can receive the same result unless selection and assignment are handled atomically.
-
-This project addresses that problem by combining scoring, state transitions, and optimistic locking to ensure tasks are only claimed once.
-```
-
----
-
-## 3. Key Features
-
-```md
-- Configurable task scoring system (priority × weight + bonus)
-- Deterministic task selection (no randomness)
-- Task lifecycle: OPEN → CLAIMED → COMPLETED
-- Claim-by-id endpoint with validation of state transitions
-- Claim-best endpoint that selects and assigns a task in one operation
-- Optimistic locking using JPA @Version to prevent duplicate claims
-- Retry mechanism for handling concurrent updates
-- DTO-based API design (no entity exposure)
-- Unit and concurrency-focused tests
-```
+- Configurable scoring: `score = priority × weight + incomplete_bonus`
+- Deterministic selection — same inputs always produce the same output
+- Task lifecycle enforcement: `OPEN → CLAIMED → COMPLETED`
+- Two selection strategies:
+  - `POST /tasks/select-task` — preview the best task without claiming it
+  - `POST /tasks/claim-best` — atomically select and claim in one transaction
+- Optimistic locking with automatic retry on conflict
+- DTO layer — entities are never exposed over the wire
+- Flyway-managed schema migrations
+- Unit tests for scoring logic, service behavior, and concurrent claims
 
 ---
 
-## 4. Task Lifecycle
+## Tech Stack
 
-```md
-OPEN → CLAIMED → COMPLETED
-
-Rules:
-- Only OPEN tasks can be claimed
-- Only CLAIMED tasks can be completed
-- Completed tasks are never considered for selection
-```
-
+- Java 17
+- Spring Boot 4.0.5 (Spring Framework 7, Jakarta EE 11)
+- Spring Data JPA / Hibernate
+- PostgreSQL 16
+- Flyway for schema migrations
+- JUnit 5 + Mockito
 
 ---
 
-## 5. Example: Claim Best Task
+## Running Locally
 
-```md
-POST /tasks/claim-best
+You need Java 17+, Maven, and Docker.
+
+**1. Start PostgreSQL:**
+
+```bash
+docker run --name taskselector-db \
+  -e POSTGRES_DB=taskdb \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  -p 5432:5432 \
+  -d postgres:16
 ```
 
-Example request:
+**2. Run the backend:**
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+The API will be available at `http://localhost:8081`. Flyway will automatically create the `task` table on first start.
+
+**3. (Optional) Open the frontend:**
+
+Open `frontend/index.html` directly in a browser. It's a minimal HTML/CSS/vanilla-JS client for manual testing.
+
+---
+
+## API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/tasks` | List all tasks |
+| `POST` | `/tasks` | Create a new task |
+| `POST` | `/tasks/select-task` | Preview the best matching task (no state change) |
+| `POST` | `/tasks/claim-best` | Atomically select and claim the best matching task |
+| `PUT`  | `/tasks/{id}` | Update a task's fields |
+| `PUT`  | `/tasks/{id}/claim` | Claim a specific task by ID |
+| `PUT`  | `/tasks/{id}/complete` | Mark a claimed task as completed |
+
+### Example flow
+
+**Create a task:**
+
+```bash
+curl -X POST http://localhost:8081/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Write report","priority":5,"category":"school"}'
+```
+
+Response:
 
 ```json
 {
+  "id": 1,
+  "title": "Write report",
+  "priority": 5,
   "category": "school",
-  "minPriority": 1,
-  "userId": "hudson",
-  "priorityWeight": 5,
-  "incompleteBonus": 30
+  "status": "OPEN"
 }
 ```
 
-Example response:
+**Claim the best task in a category:**
+
+```bash
+curl -X POST http://localhost:8081/tasks/claim-best \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category":"school",
+    "minPriority":1,
+    "userId":"hudson",
+    "priorityWeight":5,
+    "incompleteBonus":30
+  }'
+```
+
+Response:
 
 ```json
 {
   "task": {
-    "id": 2,
-    "title": "High Priority Task",
+    "id": 1,
+    "title": "Write report",
     "priority": 5,
     "category": "school",
     "status": "CLAIMED"
@@ -98,51 +141,56 @@ Example response:
 }
 ```
 
----
+**Complete the task** (use the `id` from the response above):
 
-## 6. Concurrency Handling
-
-```md
-To prevent multiple users from claiming the same task:
-
-- Each Task entity uses optimistic locking via @Version
-- Concurrent updates trigger ObjectOptimisticLockingFailureException
-- The service retries once before failing
-
-This ensures that a task can only be claimed once, even under concurrent requests.
-```
-
-
----
-
-## 7. Tech Stack
-
-```md
-- Java
-- Spring Boot
-- Spring Data JPA (Hibernate)
-- H2 (development)
-- JUnit + Mockito
+```bash
+curl -X PUT http://localhost:8081/tasks/1/complete
 ```
 
 ---
 
-## 8. Testing
+## How Concurrency Is Handled
 
-```md
-The project includes:
-- Unit tests for scoring logic and service behavior
-- Controller tests using mocks
-- Concurrency test simulating simultaneous claims to verify only one succeeds
+Each `Task` entity carries a `@Version` column. Any update is checked against the version read at load time; if another transaction won the race, Hibernate throws `ObjectOptimisticLockingFailureException` instead of silently overwriting.
+
+`claimBestTask` wraps the select-then-claim logic in a single `@Transactional` boundary and retries once on conflict. This is enough to make the vast majority of collisions recover transparently while keeping the code honest about the race.
+
+**Known limitation:** the retry is a fixed single attempt with no backoff. Under heavy sustained contention this is not ideal — exponential backoff with jitter would be the next step.
+
+---
+
+## Project Structure
+
+```
+backend/
+  src/main/java/com/hudson/taskselector/
+    controller/        REST endpoints
+    service/           Business logic, scoring, claim orchestration
+    repository/        Spring Data JPA interfaces
+    model/             JPA entities + enums
+    dto/               Request/response types
+    mapper/            Entity ↔ DTO conversion
+    exception/         Custom exceptions + global handler
+  src/main/resources/
+    db/migration/      Flyway SQL migrations
+    application.properties
+  src/test/java/       Unit + concurrency tests
+frontend/              Minimal vanilla-JS client
+docs/                  Design notes
 ```
 
 ---
 
-## 9. Future Improvements
+## Roadmap
 
-```md
-- Replace H2 with PostgreSQL for production realism
-- Add Flyway for schema migrations
-- Introduce transaction boundaries for stronger consistency guarantees
-- Add authentication for multi-user environments
-```
+- [ ] Authentication (Spring Security, session-based)
+- [ ] Per-user task ownership and authorization rules
+- [ ] Containerize with a multi-stage Dockerfile
+- [ ] Deploy to a public URL (Render or Fly.io)
+- [ ] Exponential backoff on claim retry
+
+---
+
+## License
+
+[MIT](./LICENSE)
